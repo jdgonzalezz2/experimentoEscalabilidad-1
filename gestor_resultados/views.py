@@ -2,6 +2,9 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
 import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
 
 from .logic import diagnostico_logic as dl
 
@@ -24,3 +27,12 @@ def diagnostico_view(request):
         diagnostico = dl.create_diagnostico(json.loads(request.body))
         return HttpResponse(serializers.serialize('json', [diagnostico]), 
                           'application/json', status=201)
+
+@csrf_exempt
+def enviar_diagnostico(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        print("Diagnóstico recibido:", data)
+        return JsonResponse({"status": "mensaje enviado"})
+    else:
+        return JsonResponse({"error": "Método no permitido"},status=405)
