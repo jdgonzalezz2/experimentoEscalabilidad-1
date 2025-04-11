@@ -49,23 +49,8 @@ def examen_mri_view(request):
 @csrf_exempt
 def enviar_diagnostico(request):
     if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-
-            connection = pika.BlockingConnection(
-                pika.ConnectionParameters(
-                    host='104.154.134.142',
-                    credentials=pika.PlainCredentials('clinica_user', 'isis2503')
-                )
-            )
-            channel = connection.channel()
-            channel.basic_publish(
-                exchange='clinica_exchange',
-                routing_key='cambiar_diagnostico',
-                body=json.dumps(data)
-            )
-            connection.close()
-            return JsonResponse({'status': 'mensaje enviado'})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    return JsonResponse({'error': 'Método no permitido'},status=405)
+        data = json.loads(request.body)
+        print("Diagnóstico recibido:", data)
+        return JsonResponse({"status": "mensaje enviado"})
+    else:
+        return JsonResponse({"error": "Método no permitido"},status=405)
