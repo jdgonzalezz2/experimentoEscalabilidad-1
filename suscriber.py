@@ -11,10 +11,10 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(_name)  # ← corregido __name_
 
 # Configuración de Django
-path.append('monitoring/settings.py')
+path.append('.')
 environ.setdefault('DJANGO_SETTINGS_MODULE', 'monitoring.settings')
 django.setup()
 
@@ -32,7 +32,6 @@ topic = 'cambiar_diagnostico'
 REPLICA_ID = 0  # Identificador único para esta réplica
 
 def setup_rabbitmq():
-    # Configuración de reconexión
     connection_params = pika.ConnectionParameters(
         host=rabbit_host,
         credentials=pika.PlainCredentials(rabbit_user, rabbit_password),
@@ -45,13 +44,11 @@ def setup_rabbitmq():
     connection = pika.BlockingConnection(connection_params)
     channel = connection.channel()
     
-    # Configuración del exchange
     channel.exchange_declare(
         exchange=exchange,
         exchange_type='topic',
         durable=True,
         auto_delete=False,
-        internal=False,
         arguments={
             'alternate-exchange': f'{exchange}_alternate',
             'ha-mode': 'all',
@@ -59,7 +56,6 @@ def setup_rabbitmq():
         }
     )
     
-    # Configuración de la cola
     queue_name = f'diagnosticos_replica_{REPLICA_ID}'
     channel.queue_declare(
         queue=queue_name,
@@ -67,15 +63,14 @@ def setup_rabbitmq():
         exclusive=False,
         auto_delete=False,
         arguments={
-            'x-message-ttl': 86400000,  # 24 horas en milisegundos
-            'x-max-length': 10000,  # Máximo número de mensajes
-            'x-overflow': 'reject-publish',  # Rechazar nuevos mensajes si se excede el límite
-            'x-dead-letter-exchange': f'{exchange}_dlx',  # Exchange para mensajes muertos
-            'x-dead-letter-routing-key': f'dlq.{queue_name}'  # Routing key para mensajes muertos
+            'x-message-ttl': 86400000,
+            'x-max-length': 10000,
+            'x-overflow': 'reject-publish',
+            'x-dead-letter-exchange': f'{exchange}_dlx',
+            'x-dead-letter-routing-key': f'dlq.{queue_name}'
         }
     )
     
-    # Vincular la cola al exchange
     channel.queue_bind(
         exchange=exchange,
         queue=queue_name,
@@ -99,15 +94,18 @@ def procesar_diagnostico(payload):
         
         paciente = Paciente.objects.get(id=paciente_id)
         
+        start = time.time()
         diagnostico = Diagnostico(
             paciente=paciente,
             descripcion=descripcion,
             tipo=tipo
         )
         diagnostico.save()
-        
+        end = time.time()
+
+        latencia = (end - start) * 1000  # en ms
         logger.info(f"Diagnóstico procesado - ID: {message_id} - Paciente: {paciente.nombre}")
-        logger.info(f"Timestamp: {time.ctime(timestamp)}")
+        logger.info(f"Latencia: {latencia:.2f} ms - Timestamp: {time.ctime(timestamp)}")
         
     except Paciente.DoesNotExist:
         logger.error(f"Paciente no encontrado - ID: {paciente_id}")
@@ -128,22 +126,21 @@ def main():
             logger.error(f"Error al procesar mensaje: {str(e)}")
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
-    # Configuración del consumidor
     channel.basic_qos(prefetch_count=1)
     channel.basic_consume(
         queue=queue_name,
         on_message_callback=callback,
-        auto_ack=False  # Desactivar auto-ack para manejo manual
+        auto_ack=False
     )
 
     try:
         channel.start_consuming()
     except KeyboardInterrupt:
-        logger.info("\nDeteniendo la réplica...")
+        logger.info("Deteniendo la réplica...")
     except pika.exceptions.AMQPConnectionError:
         logger.error("Error de conexión con el broker. Reintentando...")
         time.sleep(5)
-        main()  # Reintentar conexión
+        main()
     finally:
         if connection and not connection.is_closed:
             connection.close()

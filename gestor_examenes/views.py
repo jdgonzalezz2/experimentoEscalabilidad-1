@@ -1,7 +1,11 @@
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core import serializers
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
 import json
+import pika
+
 
 from .logic import paciente_logic as pl
 
@@ -41,3 +45,27 @@ def examen_mri_view(request):
         examen = pl.create_examen_mri(json.loads(request.body))
         return HttpResponse(serializers.serialize('json', [examen]), 
                           'application/json', status=201)
+
+@csrf_exempt
+def enviar_diagnostico(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+
+            connection = pika.BlockingConnection(
+                pika.ConnectionParameters(
+                    host='104.154.134.142',
+                    credentials=pika.PlainCredentials('clinica_user', 'isis2503')
+                )
+            )
+            channel = connection.channel()
+            channel.basic_publish(
+                exchange='clinica_exchange',
+                routing_key='cambiar_diagnostico',
+                body=json.dumps(data)
+            )
+            connection.close()
+            return JsonResponse({'status': 'mensaje enviado'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Método no permitido'},status=405)
