@@ -22,7 +22,7 @@ from gestor_resultados.models import Diagnostico
 from gestor_examenes.models import Paciente
 
 # Configuración de RabbitMQ
-rabbit_host = 'host'
+rabbit_host = '104.154.134.142'
 rabbit_user = 'clinica_user'
 rabbit_password = 'isis2503'
 exchange = 'clinica_exchange'
