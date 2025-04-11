@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)  # ← corregido __name_
 
 # Configuración de Django
 path.append('.')
-environ.setdefault('DJANGO_SETTINGS_MODULE', 'monitoring.settings')
+environ.setdefault('DJANGO_SETTINGS_MODULE', 'experimentoEscalabilidad.settings')
 django.setup()
 
 from gestor_resultados.models import Diagnostico
