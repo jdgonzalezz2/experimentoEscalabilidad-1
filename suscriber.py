@@ -11,7 +11,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger(_name)  # ← corregido __name_
+logger = logging.getLogger(__name__)  # ← corregido __name_
 
 # Configuración de Django
 path.append('.')
