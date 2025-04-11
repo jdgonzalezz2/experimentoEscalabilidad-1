@@ -78,7 +78,7 @@ WSGI_APPLICATION = 'experimentoEscalabilidad.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'isis2503-talleres-db',
+        'NAME': 'monitoring_db',
         'USER': 'monitoring_user',
         'PASSWORD': 'isis2503',
         'HOST': '10.114.64.3',
